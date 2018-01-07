@@ -1,0 +1,541 @@
+---
+title: "Exosolar Exploratory Analysis"
+author: "Niket"
+output: rmarkdown::github_document
+---
+
+# Exosolar Exploratory Analysis
+
+
+```{r}
+# packages to be preinstalled with the libraries used in this project.
+
+#install.packages("ggplot2")
+library(ggplot2)
+#library(ggthemes)
+
+#install.packages("dplyr")
+library(dplyr)
+
+#library(scales)
+
+#install.packages("Amelia")
+#library('Rcpp')
+#library('Amelia')
+
+#install.packages('caret')
+#require(caret)
+
+#install.packages('e1071')
+#require(e1071)
+
+#install.packages("corrr")
+#library(corrr)
+
+#install.packages('rattle')
+#library(rattle)
+
+#install.packages('rpart.plot')
+#library(rpart.plot)
+#library(rpart)
+
+#install.packages('RColorBrewer')
+#library(RColorBrewer)
+
+#install.packages('xgboost')
+#library(xgboost)
+#library(readr)
+#library(stringr)
+
+#install.packages('randomForest')
+#library(randomForest)
+
+#install.packages('gbm')
+```
+
+***
+
+All variables in the dataset are as follows:
+```{r}
+# "PlanetIdentifier" - Name given to the planet
+# "TypeFlag"  - TypeFlag==0,'no known stellar binary companion'
+              # TypeFlag==1,'P-type binary (circumbinary)'
+              # TypeFlag==2,'S-type binary'
+              # TypeFlag==3,'orphan planet'
+# "PlanetaryMassJpt"  - Mass of planet (Jupiter mass = 1)
+# "RadiusJpt" - Radius of Planet (Jupiter Mass = 1) 
+# "PeriodDays"  - To rotatate 1 round around it's parent star       
+# "SemiMajorAxisAU"   - Distance from Sun to Earth = 1AU
+# "Eccentricity"  - measure of the extent of a deviation of a curve or orbit
+# "PeriastronDeg" - the angle nearest to a star in the path of a planet
+# "LongitudeDeg" - Mean longitude at a given Epoch (same for all planets in one system)
+# "AscendingNodeDeg" - Longitude of the ascending node 
+# "InclinationDeg" - Inclination of the orbit 
+# "SurfaceTempK"   - Temperature (surface or equilibrium) 
+# "AgeGyr" - Age Planet or Star
+# "DiscoveryMethod"  - Discovery method of the planet
+                    # timing
+                    # RV
+                    # transit
+                    # imaging
+                    # microlensing  
+# "DiscoveryYear" - Year of the planet's discovery 
+# "LastUpdated" - Date of the last (non-trivial) update 
+# "RightAscension"  - Right ascension
+# "Declination"  - Declination
+# "DistFromSunParsec" - Distance of planet from Sun in Parsecs(1 Parsecs = 3.26 light years)
+# "HostStarMassSlrMass" - Mass of Star(mass of Sun = 1) 
+# "HostStarRadiusSlrRad" - Radius of Star(radius of Sun = 1)
+# "HostStarMetallicity" - Stellar metallicity
+# "HostStarTempK"  - Host Star Temperature
+# "HostStarAgeGyr"  - Age of Host Star In Billion years   
+# "ListsPlanetIsOn" -  
+         # Confirmed planets 
+         # Confirmed planets, Orphan planets 
+         # Confirmed planets, Planets in binary systems, P-type 
+         # Confirmed planets, Planets in binary systems, P-type, Planets in globular clusters 
+         # Confirmed planets, Planets in binary systems, S-type 
+         # Confirmed planets, Planets in open clusters 
+         # Controversial 
+         # Controversial, Planets in binary systems, P-type 
+         # Controversial, Planets in binary systems, S-type 
+         # Kepler Objects of Interest 
+         # Planets in binary systems, S-type, Confirmed planets 
+         # Retracted planet candidate 
+         # Solar System 
+# "Probability_of_life" - For probability of Life = 1
+                        # For no probability of Life = 0      
+```
+
+***
+
+We load the data now.
+```{r}
+exos <- read.csv(file.choose(), header = T)  # load file exos_new.csv
+head(exos) # show top 6 observations
+```
+We have now loaded the data as exos which stands for exosolar.
+
+***
+
+Now lets look in detail on this data set we loaded.
+```{r}
+str(exos)
+```
+We see that most of them are numerical, except for few which are factors and integers. “num” denotes that the variable “count” is numeric (continuous), and “Factor” denotes that the variable “spray” is categorical with 6 or more categories or levels, and "int" denotes that the variable "count" is numeric(discrete). For more information on each variable we get the summary.
+```{r}
+summary(exos)
+```
+Here we can see that there are many values which are NA. Now either we have to replace these NA values, or delete them, or get out our results without doing anything.
+
+
+```{r}
+dim(exos) # Use dim() to obtain the number of rows and columns of data frame.
+names(exos) # The names() function will return the column headers.
+```
+We see that we have 3584 observations spread around 25 variables. We can find detailed explaination on each variable in the documentation.
+
+```{r}
+# Basic Scatterplot Matrix
+pairs(~PlanetaryMassJpt + RadiusJpt + PeriodDays + SurfaceTempK + DiscoveryYear + DistFromSunParsec + HostStarMassSlrMass + HostStarRadiusSlrRad + HostStarTempK, data = exos)
+```
+Basic Scatterplot Matrix between the given variables.
+
+***
+
+Now let's begin with in-depth analysis of these variables.
+
+***
+
+### TypeFlag
+
+```{r}
+summary(exos$TypeFlag)
+```
+
+First of all we see that the variable TypeFlag has only 4 values; 0, 1, 2, 3. We can rename the observations accordingly.
+```{r}
+exos$TypeFlag <- ifelse(exos$TypeFlag==0,'no known stellar binary companion',exos$TypeFlag)
+exos$TypeFlag <- ifelse(exos$TypeFlag==1,'P-type binary (circumbinary)',exos$TypeFlag)
+exos$TypeFlag <- ifelse(exos$TypeFlag==2,'S-type binary',exos$TypeFlag)
+exos$TypeFlag <- ifelse(exos$TypeFlag==3,'orphan planet (no star)',exos$TypeFlag)
+```
+
+```{r}
+summary(exos$TypeFlag)
+```
+
+Now we can see number of observations in TypeFlag using table()
+```{r}
+levels(as.factor(exos$TypeFlag)) # looking at levels as factors.
+table(exos$TypeFlag)
+```
+
+***
+
+#### Converting variable Probability_of_life to factor
+```{r}
+exos$Probability_of_life <- as.factor(exos$Probability_of_life)
+table(exos$Probability_of_life)
+# So we have 328 planets in our dataset with some probability of life.
+# 0  means No Life, 1 means Life
+```
+
+***
+
+#### Create a normalization function
+```{r}
+# we can normalize the data 
+
+#normalize_risk_h_numerical <- sapply(risk_h_numerical, function(x) {
+#(x - min(x))/(max(x) - min(x))})
+
+normalize <- function(x) {
+return((x - min(x))/(max(x) - min(x)))} # create normalize function
+```
+
+
+#### Create a function to remove outliers
+```{r}
+remove_outliers <- function(x, rm_NA = TRUE)
+{
+  qnt <- quantile(x, probs=c(.25, .75), na.rm = rm_NA)
+  H <- 1.5 * IQR(x, na.rm = rm_NA)
+  y <- x
+  y[x < (qnt[1] - H)] <- NA
+  y[x > (qnt[2] + H)] <- NA
+  y
+}
+```
+We will call this function later, this will shorten the code.
+
+***
+
+### PlanetaryMassJpt
+```{r}
+summary(exos$PlanetaryMassJpt)
+summary(remove_outliers(exos$PlanetaryMassJpt))
+```
+
+```{r}
+massjptplot <- data.frame(remove_outliers(exos$PlanetaryMassJpt)) # Called the function to remove outliers.
+ggplot(data=exos, aes(massjptplot)) + geom_histogram(breaks=seq(0, 10, by=.01), 
+                 col="red", 
+                 fill="green", 
+                 alpha = .2) + 
+  labs(title="Histogram for Mass of Planet") +
+  labs(x="Mass of Planet(Jupiter = 1)", y="Count") + 
+  xlim(c(0,10)) + 
+  ylim(c(0,50)) +
+  geom_vline(xintercept = 1, linetype = "dashed") +
+  annotate("text", label="Jupiter", colour="black", x= 1.5, y = 49) +
+  geom_vline(xintercept = 0.0031457007, linetype = "dashed") +
+  annotate("text", label="Earth", colour="black", x= 0.1, y = 49)
+
+#boxplot(massjptplot, exos, horizontal = TRUE, axes = TRUE, range = 1,  col = c("red"), xlab = "Planetary Mass(Jupiter Mass)", 
+#        ylab = "count", ylim = c(0, 8), las = 2)
+
+ggplot(exos, aes(1, massjptplot)) +
+      geom_boxplot(col = "red") +
+  ggtitle("Boxplot of Planetary Mass(Jupiter Mass)") +
+  coord_flip()
+```
+The plot of the mass with the outliers was not very useful. But the main bulk of the planets is within the much smaller range, so removed the outliers. There are still many extremely massive planets . But still, the largest bin is around Earth’s mass.
+
+***
+
+### RadiusJpt
+
+```{r}
+summary(exos$RadiusJpt)
+```
+
+```{r}
+ggplot(data=exos, aes(exos$RadiusJpt)) + geom_histogram(aes(colour = Probability_of_life),breaks=seq(0, 5, by=.01), 
+                 #col="red", 
+                 #fill="green", 
+                 alpha = .2) + 
+  labs(title="Histogram for Radius of Planet") +
+  labs(x="Radius of Planet(Jupiter = 1)", y="Count") + 
+  xlim(c(0,5)) + 
+  ylim(c(0,50)) +
+  geom_vline(xintercept = 1, linetype = "dashed") +
+  annotate("text", label="Jupiter", colour="black", x= 1.5, y = 49) +
+  geom_vline(xintercept = 0.091130294, linetype = "dashed") +
+  annotate("text", label="Earth", colour="black", x= 0.1, y = 49)
+
+# boxplot(exos$RadiusJpt,horizontal=TRUE,axes=TRUE,range = 1, col = c("red"), xlab = "Boxplot for Radius of Planet")
+
+ggplot(exos, aes(1, RadiusJpt)) +
+      geom_boxplot(col = "red") +
+  ggtitle("Boxplot of Radius of Planet") +
+  coord_flip()
+```
+
+Shape is bimodal. The modes are aroud Earth’s size and Jupiter’s size. Hence maximum planets lies in these sizes(can't say for sure), as there might be some physical law that dictates that planets will tend to form around these two sizes.
+Also chance of Life = 1 bins are around Earth radius.
+
+***
+
+### PeriodDays
+```{r}
+summary(exos$PeriodDays)
+```
+We see that a planet takes 320000 days to complete one rotation around it's parent star. They can be termed as outliers. 
+
+Let's look at the plots.
+```{r}
+#periodplot <- data.frame(remove_outliers(exos$PeriodDays))
+ggplot(data=exos, aes(exos$PeriodDays)) + geom_histogram(aes(colour = Probability_of_life),breaks=seq(0, 5000, by=2), 
+                 #col="red", 
+                 #fill="green", 
+                 alpha = .2) + 
+  labs(title="Histogram for Period of Rotation of Planet") +
+  labs(x="Rotation Days of Planet", y="Count") + 
+  xlim(c(0,5000)) + 
+  ylim(c(0,10)) +
+  geom_vline(xintercept = 4332.82, linetype = "dashed") +
+  annotate("text", label="Jupiter", colour="black", x= 4334, y = 9) +
+  geom_vline(xintercept = 365.2422, linetype = "dashed") +
+  annotate("text", label="Earth", colour="black", x= 366, y = 9)
+
+boxplot(exos$PeriodDays, horizontal=TRUE, axes=TRUE,range = 537.2, col = c("red"))
+
+#ggplot(exos, aes(1, PeriodDays)) +
+ #     geom_boxplot(col = "red") +
+  #ggtitle("Boxplot of Period of Rotation of Planet)") +
+   #coord_flip()
+```
+
+Most of the planets have less roation cycle as they tend to be close to their star. Our telescopes are still in infancy to locate planets with more number of rotation.
+
+Also most planets with Life probability take less time rotating around their star, it's true, as most planets were found close to dwarf stars, also habitable zone is always nearby a parent star.
+
+***
+
+## SurfaceTempK
+```{r}
+summary(exos$SurfaceTempK)
+```
+
+```{r}
+ggplot(data=exos, aes(exos$SurfaceTempK)) + geom_histogram(aes(colour = Probability_of_life), breaks=seq(0, 8000, by=2.5), 
+                 #col="red", 
+                 #fill="green", 
+                 alpha = .2) + 
+  labs(title="Histogram for Surface Temperature Planet") +
+  labs(x="Surface Temperature", y="Count") + 
+  xlim(c(0,8000)) + 
+  ylim(c(0,10)) +
+  geom_vline(xintercept = 128.15, linetype = "dashed") +
+  annotate("text", label="Jupiter", colour="black", x= 50, y = 10) +
+  geom_vline(xintercept = 287, linetype = "dashed") +
+  annotate("text", label="Earth", colour="black", x= 600, y = 10)
+
+#hist(exos$SurfaceTempK, 1000)
+
+#boxplot(exos$SurfaceTempK, horizontal=TRUE, axes=TRUE,range = 1, col = c("red"))
+
+ggplot(exos, aes(1, SurfaceTempK)) +
+      geom_boxplot(col = "red") +
+  ggtitle("Boxplot for Surface Temperature Planet") +
+  coord_flip()
+```
+
+More planets observed have much hotter surface temperatures. We can say that they are much closer to their host star. They cannot be mostly habitable.
+
+Also most planets with  Life probability have close to Earth's surface temperature.
+
+***
+
+### DiscoveryMethod
+```{r}
+levels(as.factor(exos$DiscoveryMethod))
+```
+
+```{r}
+exos %>% group_by(DiscoveryMethod) %>% summarise(number_discovered=n())
+```
+
+More planets were observed using transit method, as our telescpoes(mainly Kepler) are better at observing the dip in brightness.
+
+```{r}
+exos$DiscoveryMethod[exos$DiscoveryMethod == '']  <- NA
+methodplot <- exos[!is.na(exos$DiscoveryMethod),]
+
+library(scales)
+
+ggplot(methodplot,aes(x = DiscoveryYear, fill = DiscoveryMethod)) +
+  geom_line(stat = "bin", binwidth = 2, aes(colour = DiscoveryMethod)) +
+  scale_x_continuous(breaks = pretty_breaks(n = 10)) +
+  coord_cartesian(xlim =c(1992, 2016)) +
+  xlab("Year") + ylab("Planets Discovered") +
+  theme(panel.background = element_rect(fill = "white",
+        color = "black", size = 0.1),
+        axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+Looks like by using RV and transit we found most amount of planets.
+
+***
+
+### DiscoveryYear
+```{r}
+summary(exos$DiscoveryYear)
+```
+
+```{r}
+ggplot(data=exos, aes(exos$DiscoveryYear)) + geom_histogram(aes(colour = Probability_of_life),breaks=seq(1781, 2017, by=2), 
+                 #col="red", 
+                 #fill="red", 
+                 alpha = .2) + 
+  labs(title="Histogram for Discovery Year of Planet") +
+  labs(x="Year", y="Count") + 
+  xlim(c(1781,2017)) + 
+  ylim(c(0,1500))
+
+# hist(exos$DiscoveryYear, 1000)
+# boxplot(exos$DiscoveryYear, horizontal=TRUE, axes=TRUE,range = 10, col = "red")
+```
+
+After the launch of Kepler Space Telescope and after 2013( when Kepler’s second reaction wheel failed and that the mission had to be replanned) we observed more planets.
+
+Also planets with Life probability were mostly discovered recently due to the advancements in telescopes.
+
+***
+
+#### Distribution of Jupiter Masses of these planets?
+```{r}
+massjptplot_1 <- remove_outliers(exos$PlanetaryMassJpt)
+ggplot(exos, aes(TypeFlag, massjptplot_1)) +
+        geom_boxplot(colour = "red") +
+  ggtitle("Boxplot of Mass of Planet vs TypeFlag") +
+  coord_flip()
+# varwidth = FALSE, size = 4, colour = "red")  + 
+#  scale_x_discrete(name = "Planetary Mass(Jupiter Mass)", breaks = seq(0, 6, 2),limits=c(0, 6)
+
+ggplot(exos, aes(TypeFlag, massjptplot_1)) +
+        geom_point(aes(colour = DiscoveryMethod)) +
+  ggtitle("Mass of Planet vs TypeFlag") +
+  coord_flip()
+```
+
+So we can see that our star is an odd compared to others, as most star have a stellar companion.
+
+Planets with higher mass are easily spotted by Transit method.
+
+Massive planets are less which are found orbitting P-type binary(both stars) which is true as more massive the planet, more chace it has to destablize the system, or collide with parent star.
+
+Most of the planets are observed by transit Method.
+
+***
+
+#### Discovery methods by Temperature
+
+```{r}
+ggplot(exos, aes(exos$DiscoveryMethod, exos$SurfaceTempK)) +
+      geom_boxplot(col = "red") +
+  ggtitle("Boxplot of Planet Temp vs Discovery Method") +
+  coord_flip()
+# size = 4, colour = "red")                               +
+# scale_x_discrete(name = "Surface Temperature", breaks = seq(0, 6000, 2),limits=c(0, 6000)        
+
+ggplot(exos, aes(exos$DiscoveryMethod, exos$SurfaceTempK)) +
+      geom_point(aes(colour = Probability_of_life)) +
+  ggtitle("Planet Temp vs Discovery Method") +
+  coord_flip()
+```
+
+We see that hotter planets were discovered by the imaging method. Microlensing was used for colder planets.
+
+***
+
+#### Relationship between SemiMajor Axis and Period
+```{r}
+axpdplot <- select(exos,c(SemiMajorAxisAU,PeriodDays))
+axpdplot <- na.omit(axpdplot)
+ggplot(axpdplot, aes(x=log(SemiMajorAxisAU), y=log(PeriodDays))) +
+  geom_point(col = "red") +
+  stat_smooth(method=lm, level=0.95, col = "black") # log to make plot more readable.
+```
+ The relationship is linear. We can predict the Period of a planet from the length of its semi-major axis.
+
+***
+
+#### Star
+
+***
+
+##### Relationship between star mass and star temperature
+```{r}
+mastemplot1 <- select(exos,c(HostStarMassSlrMass,HostStarTempK,Probability_of_life))
+mastemplot1 <- na.omit(mastemplot1)
+ggplot(mastemplot1,aes(x = log(HostStarMassSlrMass),y = log(HostStarTempK))) + 
+  geom_point(aes(colour = Probability_of_life)) +  # log transformation to get readable plot.
+  stat_smooth(method = lm, col="black") +
+  geom_vline(xintercept = 0.00000001, linetype = "dashed") +
+  annotate("text", label="Sun(Sol)", colour="black", x= 0, y = 10)
+```
+
+As the mass of the star increases, the temperature of the star also increases.
+
+Also most of the Life probability is around our Sun mass stars.
+
+***
+
+##### Relationship between Planet Mass and Host Star Mass
+```{r}
+#create a scatter plot
+ggplot(data = exos, aes(x = HostStarMassSlrMass, y = PlanetaryMassJpt)) +
+  geom_point(aes(colour = Probability_of_life)) +
+  scale_y_continuous("PlanetaryMassJpt", breaks = seq(0,270,10)) +
+  geom_vline(xintercept = 1, linetype = "dashed") +
+  annotate("text", label="Sun(Sol)", colour="black", x= 1, y = 260) +
+  geom_hline(yintercept = 0.003145701, linetype = "dashed") +
+  annotate("text", label="Earth", colour="black", x= 4, y = 4)
+```
+
+we see that most of the planets with some probabolity of life are somewhat massive than Earth
+
+This is because our telescope technology is not that strong
+
+Also most of them lie between 0.5 to 2 times our Sun mass
+
+At the cross-section of Sun and Earth most planets with Life probability lie.
+
+***
+
+### Location and Discovery
+#### Distance From Us
+
+```{r}
+summary(exos$DistFromSunParsec)
+```
+
+```{r}
+ggplot(data=exos, aes(exos$DistFromSunParsec)) + 
+  geom_histogram(aes(colour = Probability_of_life), breaks=seq(0, 9000, by = 8), 
+                 #col="red", 
+                 #fill="red", 
+                 alpha = .2) + 
+  labs(title="Histogram for Discovery Year of Planet") +
+  labs(x="Distance(Parsec)", y="Count") + 
+  xlim(c(0,9000)) + 
+  ylim(c(0,30))
+```
+
+So we discover more planets closer to us as our technology is still in infancy.
+
+And obviously our models and telescopes can predict Life closer to us.
+
+***
+
+```{r}
+# using missing data imputation 'Amelia' package for filling the missing values in our dataset.
+#library('Rcpp')
+#library('Amelia')
+#AmeliaView()
+```
+
+***
+***

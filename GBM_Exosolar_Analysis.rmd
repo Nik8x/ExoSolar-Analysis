@@ -1,0 +1,105 @@
+---
+title: "GBM_Exosolar_Analysis"
+author: "Niket"
+output: rmarkdown::github_document
+---
+
+GBM Model - A boosting algorithm.It is a machine learning technique for regression and classification problems.It produces a prediction model in the form of an ensemble of weak prediction models, typically decision trees.
+
+```{r}
+#install.packages('caret')
+require(caret)
+
+#install.packages('e1071')
+require(e1071)
+```
+
+```{r}
+# load the new dataset
+exosim <- read.csv(file.choose(), header = TRUE) # load exos_new-imp2.csv
+```
+
+```{r}
+#### Converting variable Probability_of_life to factor
+exosim$Probability_of_life <- as.factor(exosim$Probability_of_life)
+table(exosim$Probability_of_life)
+# So we have 328 planets in our dataset with some probability of life.
+```
+
+
+```{r}
+label_1 <- exosim$Probability_of_life # our variable for classification
+```
+
+```{r}
+set.seed(1234)
+oneortwo <- sample(1:2 , length(exosim$PlanetIdentifier), replace = TRUE, prob=c(0.8, 0.2)) # generating random values and storing them
+```
+
+```{r}
+# create train data frame
+train_2 <- exosim[oneortwo == 1, -26]
+
+# create test data frame
+test_2 <- exosim[oneortwo == 2, -26]
+
+# create data frame to apply train and test upon
+train_2_label <- label_1[oneortwo == 1]
+test_2_label <- label_1[oneortwo == 2]
+```
+
+
+```{r}
+test_2 <- data.frame(test_2, test_2_label)
+head(test_2)
+
+train_2 <- data.frame(train_2, train_2_label)
+head(train_2)
+```
+
+#### Generalized Boosted Regression Models(GBM)
+
+```{r}
+library(caret)
+```
+
+```{r}
+fitControl <- trainControl(method = "cv", number = 10) #5folds) # cross validation (cv) is used to determine the optimum number of trees. 
+```
+
+```{r}
+tune_Grid <-  expand.grid(interaction.depth = 2, # interaction.depth = 2, shrinkage = 0.1 came from a bit of experimenting.
+                            n.trees = 500,      # n.trees has to be high enough that it is clear the optimum number of trees is lower than the number estimated.
+                            shrinkage = 0.1,
+                            n.minobsinnode = 20)
+```
+
+```{r}
+set.seed(1234)
+
+#install.packages('gbm')
+
+life_predicted_6 <- train(train_2_label ~ PlanetaryMassJpt + RadiusJpt + PeriodDays + SemiMajorAxisAU + Eccentricity + PeriastronDeg + LongitudeDeg + AscendingNodeDeg + InclinationDeg + SurfaceTempK + AgeGyr + DiscoveryYear + DistFromSunParsec + HostStarMassSlrMass + HostStarRadiusSlrRad + HostStarMetallicity + HostStarTempK + HostStarAgeGyr + TypeFlag + DiscoveryMethod , data = train_2,
+                 method = "gbm",
+                 trControl = fitControl,
+                 verbose = FALSE,
+                 tuneGrid = tune_Grid)
+```
+
+```{r}
+prediction_6 <- predict(life_predicted_6, test_2, type = "raw") 
+```
+
+
+```{r}
+results_6 <- data.frame(prediction_6, test_2$test_2_label)
+
+accuracy_6  <- paste("Accuracy of GBM Model is:", sum(prediction_6 == test_2$test_2_label)/length(prediction_6))
+gbm <- sum(prediction_6 == test_2$test_2_label)/length(prediction_6)
+
+confusionMatrix(table(results_6))
+```
+
+We get an accuracy of 97.07% which is best yet. The more ntrees the more accuracy we observe here, but after that we will see overfitting. 
+
+***

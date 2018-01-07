@@ -1,0 +1,137 @@
+---
+title: "XGBoost_Exosolar_Analysis"
+author: "Niket"
+output: rmarkdown::github_document
+---
+
+Extreme Gradient Boosting, XGBoost Model - It does parallel computation on a single machine. This makes xgboost at least 10 times faster than existing gradient boosting implementations. It supports various objective functions, including regression, classification and ranking. It only works with numeric vectors.
+
+```{r}
+#install.packages('caret')
+require(caret)
+
+#install.packages('e1071')
+require(e1071)
+```
+
+```{r}
+# load the new dataset
+exosim <- read.csv(file.choose(), header = TRUE) # load exos_new-imp2.csv
+```
+
+```{r}
+#### Converting variable Probability_of_life to factor
+exosim$Probability_of_life <- as.factor(exosim$Probability_of_life)
+table(exosim$Probability_of_life)
+# So we have 328 planets in our dataset with some probability of life.
+```
+
+```{r}
+label_1 <- exosim$Probability_of_life # our variable for classification
+```
+
+```{r}
+set.seed(1234)
+oneortwo <- sample(1:2 , length(exosim$PlanetIdentifier), replace = TRUE, prob=c(0.8, 0.2)) # generating random values and storing them
+```
+
+
+#### XGBoost
+
+XgBoost accepts the missing values in it's prediction but we'll take our exosim dataframe.
+```{r}
+# install.packages('xgboost')
+library(xgboost)
+library(readr)
+library(stringr)
+#library(caret)
+#install.packages('car')
+#library(car)
+```
+
+```{r}
+# create train data frame
+train_3 <- exosim[oneortwo == 1, -26]
+
+# create test data frame
+test_3 <- exosim[oneortwo == 2, -26]
+
+# create data frame to apply train and test upon
+train_3_label <- label_1[oneortwo == 1]
+test_3_label <- label_1[oneortwo == 2]
+```
+
+```{r}
+# convert every variable to numeric, even the integer variables
+train_3 <- as.data.frame(lapply(train_3, as.numeric))
+test_3 <- as.data.frame(lapply(test_3, as.numeric))
+```
+
+We must convert our data type to numeric, otherwise algorithm doesn’t work.
+
+```{r}
+# convert data to xgboost format
+data.train_3 <- xgb.DMatrix(data = data.matrix(train_3[, 1:ncol(train_3)]), label = train_3_label)
+data.test_3 <- xgb.DMatrix(data = data.matrix(test_3[, 1:ncol(test_3)]), label = test_3_label)
+
+```
+
+
+```{r}
+watchlist <- list(train  = data.train_3, test = data.test_3)
+```
+
+```{r}
+parameters <- list(
+    # General Parameters
+    booster            = "gbtree",          # default = "gbtree"           # gbtree (tree based) or gblinear (linear function)
+    silent             = 0,                 # default = 0                  # silent = 0 will stop results from displaying
+    # Booster Parameters
+    eta                = 0.3,               # default = 0.3, range: [0,1]  # Low eta value means model is more robust to overfitting.
+    gamma              = 0,                 # default = 0,   range: [0,∞]  # Larger the gamma more conservative the algorithm is.
+    max_depth          = 2,                 # default = 6,   range: [1,∞]  # less depth so to avoid overfitting
+    min_child_weight   = 1,                 # default = 1,   range: [0,∞]  # It might help in logistic regression when class is extremely imbalanced. 
+    subsample          = 1,                 # default = 1,   range: (0,1]  # 0.5 means that XGBoost randomly collected half of the data instances to grow trees, this will prevent overfitting.
+    colsample_bytree   = 1,                 # default = 1,   range: (0,1]
+    colsample_bylevel  = 1,                 # default = 1,   range: (0,1]
+    lambda             = 1,                 # default = 1
+    alpha              = 0,                 # default = 0
+    # Task Parameters
+    objective          = "multi:softmax",   # default = "reg:linear"
+    eval_metric        = "mlogloss",
+    num_class          = 20,
+    seed               = 1234               # reproducability seed
+    )
+
+
+```
+
+
+```{r}
+life_predicted_7 <- xgb.train(parameters, data.train_3, nrounds = 200, watchlist) # nrounds is like ntrees 
+```
+
+```{r}
+prediction_7 <- predict(life_predicted_7, data.test_3)
+summary(prediction_7)
+# values are (1,2) but we need (0,1)
+
+prediction_7 <- as.numeric(prediction_7 > 1.5) 
+summary(prediction_7)
+# this step to convert values  (1,2) to (0,1) in prediction_7
+```
+
+```{r}
+results_7 <- data.frame(prediction_7, test_3_label)
+
+accuracy_7  <- paste("Accuracy of XGBoost Model is:", sum(prediction_7 == test_3_label)/length(prediction_7))
+xgboostXGB <- sum(prediction_7 == test_3_label)/length(prediction_7)
+```
+
+```{r}
+confusionMatrix(table(results_7))
+```
+
+We get an accuracy of 97.49% which is best. nrounds = 200 really works, we could further improve accuracy with higher values of nrounds.
+
+***

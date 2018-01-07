@@ -1,0 +1,88 @@
+---
+title: "Naive_Bayes_Exosolar_Analysis"
+author: "Niket"
+output: rmarkdown::github_document
+---
+
+Naive Bayes - To calculate the probability that an event will occur, given that another event has already occurred, we use Bayes’ Theorem. To calculate the probability of an outcome given the value of some variable. Naive Bayes can handle missing data. ‘naive’ because it assumes that all the variables are independent of each other. This should not work very well with our model. But let's look at it too.
+
+```{r}
+#install.packages('caret')
+require(caret)
+
+#install.packages('e1071')
+require(e1071)
+```
+
+```{r}
+# load the new dataset
+exosim <- read.csv(file.choose(), header = TRUE) # load exos_new-imp2.csv
+```
+
+```{r}
+#### Converting variable Probability_of_life to factor
+exosim$Probability_of_life <- as.factor(exosim$Probability_of_life)
+table(exosim$Probability_of_life)
+# So we have 328 planets in our dataset with some probability of life.
+```
+
+
+```{r}
+label_1 <- exosim$Probability_of_life # our variable for classification
+```
+
+```{r}
+set.seed(1234)
+oneortwo <- sample(1:2 , length(exosim$PlanetIdentifier), replace = TRUE, prob=c(0.8, 0.2)) # generating random values and storing them
+```
+
+```{r}
+# create train data frame
+train_2 <- exosim[oneortwo == 1, -26]
+
+# create test data frame
+test_2 <- exosim[oneortwo == 2, -26]
+
+# create data frame to apply train and test upon
+train_2_label <- label_1[oneortwo == 1]
+test_2_label <- label_1[oneortwo == 2]
+```
+
+
+```{r}
+test_2 <- data.frame(test_2, test_2_label)
+head(test_2)
+
+train_2 <- data.frame(train_2, train_2_label)
+head(train_2)
+```
+
+#### NaiveBayes
+
+```{r}
+#library(e1071)
+library(plyr)
+```
+
+```{r}
+life_predicted_4 <- naiveBayes(train_2_label ~ PlanetaryMassJpt + RadiusJpt + PeriodDays + SemiMajorAxisAU + Eccentricity + PeriastronDeg + LongitudeDeg + AscendingNodeDeg + InclinationDeg + SurfaceTempK + AgeGyr + DiscoveryYear + DistFromSunParsec + HostStarMassSlrMass + HostStarRadiusSlrRad + HostStarMetallicity + HostStarTempK + HostStarAgeGyr + TypeFlag + DiscoveryMethod + ListsPlanetIsOn , data = train_2)
+```
+
+
+```{r}
+summary(life_predicted_4)
+```
+
+```{r}
+prediction_4 <- predict(life_predicted_4, test_2, type='class')
+results_4 <- data.frame(prediction_4, test_2$test_2_label)
+
+accuracy_4 <- paste("Accuracy of Naive Bayes Model is:", sum(prediction_4 == test_2$test_2_label)/length(prediction_4))
+naivebayesNB <- sum(prediction_4 == test_2$test_2_label)/length(prediction_4)
+
+confusionMatrix(table(results_4))
+```
+
+We get accuracy of 82.26%. Well this was to happen as Naive Bayes considers variables to be unrelated to each other. 
+
+***

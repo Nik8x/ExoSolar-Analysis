@@ -1,0 +1,1032 @@
+---
+title: "Exosolar Analysis"
+author: "Niket"
+output: rmarkdown::github_document
+---
+
+# Exosolar Analysis
+
+
+```{r}
+# packages to be preinstalled with the libraries used in this project.
+
+#install.packages("ggplot2")
+library(ggplot2)
+#library(ggthemes)
+
+#install.packages("dplyr")
+library(dplyr)
+
+#library(scales)
+
+#install.packages("Amelia")
+#library('Rcpp')
+#library('Amelia')
+
+#install.packages('caret')
+#require(caret)
+
+#install.packages('e1071')
+#require(e1071)
+
+#install.packages("corrr")
+#library(corrr)
+
+#install.packages('rattle')
+#library(rattle)
+
+#install.packages('rpart.plot')
+#library(rpart.plot)
+#library(rpart)
+
+#install.packages('RColorBrewer')
+#library(RColorBrewer)
+
+#install.packages('xgboost')
+#library(xgboost)
+#library(readr)
+#library(stringr)
+
+#install.packages('randomForest')
+#library(randomForest)
+
+#install.packages('gbm')
+```
+
+***
+
+All variables in the dataset are as follows:
+```{r}
+# "PlanetIdentifier" - Name given to the planet
+# "TypeFlag"  - TypeFlag==0,'no known stellar binary companion'
+              # TypeFlag==1,'P-type binary (circumbinary)'
+              # TypeFlag==2,'S-type binary'
+              # TypeFlag==3,'orphan planet'
+# "PlanetaryMassJpt"  - Mass of planet (Jupiter mass = 1)
+# "RadiusJpt" - Radius of Planet (Jupiter Mass = 1) 
+# "PeriodDays"  - To rotatate 1 round around it's parent star       
+# "SemiMajorAxisAU"   - Distance from Sun to Earth = 1AU
+# "Eccentricity"  - measure of the extent of a deviation of a curve or orbit
+# "PeriastronDeg" - the angle nearest to a star in the path of a planet
+# "LongitudeDeg" - Mean longitude at a given Epoch (same for all planets in one system)
+# "AscendingNodeDeg" - Longitude of the ascending node 
+# "InclinationDeg" - Inclination of the orbit 
+# "SurfaceTempK"   - Temperature (surface or equilibrium) 
+# "AgeGyr" - Age Planet or Star
+# "DiscoveryMethod"  - Discovery method of the planet
+                    # timing
+                    # RV
+                    # transit
+                    # imaging
+                    # microlensing  
+# "DiscoveryYear" - Year of the planet's discovery 
+# "LastUpdated" - Date of the last (non-trivial) update 
+# "RightAscension"  - Right ascension
+# "Declination"  - Declination
+# "DistFromSunParsec" - Distance of planet from Sun in Parsecs(1 Parsecs = 3.26 light years)
+# "HostStarMassSlrMass" - Mass of Star(mass of Sun = 1) 
+# "HostStarRadiusSlrRad" - Radius of Star(radius of Sun = 1)
+# "HostStarMetallicity" - Stellar metallicity
+# "HostStarTempK"  - Host Star Temperature
+# "HostStarAgeGyr"  - Age of Host Star In Billion years   
+# "ListsPlanetIsOn" -  
+         # Confirmed planets 
+         # Confirmed planets, Orphan planets 
+         # Confirmed planets, Planets in binary systems, P-type 
+         # Confirmed planets, Planets in binary systems, P-type, Planets in globular clusters 
+         # Confirmed planets, Planets in binary systems, S-type 
+         # Confirmed planets, Planets in open clusters 
+         # Controversial 
+         # Controversial, Planets in binary systems, P-type 
+         # Controversial, Planets in binary systems, S-type 
+         # Kepler Objects of Interest 
+         # Planets in binary systems, S-type, Confirmed planets 
+         # Retracted planet candidate 
+         # Solar System 
+# "Probability_of_life" - For probability of Life = 1
+                        # For no probability of Life = 0      
+```
+
+***
+
+We load the data now.
+```{r}
+exos <- read.csv(file.choose(), header = T)  # load file exos_new.csv
+head(exos) # show top 6 observations
+```
+We have now loaded the data as exos which stands for exosolar.
+
+***
+
+Now lets look in detail on this data set we loaded.
+```{r}
+str(exos)
+```
+We see that most of them are numerical, except for few which are factors and integers. “num” denotes that the variable “count” is numeric (continuous), and “Factor” denotes that the variable “spray” is categorical with 6 or more categories or levels, and "int" denotes that the variable "count" is numeric(discrete). For more information on each variable we get the summary.
+```{r}
+summary(exos)
+```
+Here we can see that there are many values which are NA. Now either we have to replace these NA values, or delete them, or get out our results without doing anything.
+
+
+```{r}
+dim(exos) # Use dim() to obtain the number of rows and columns of data frame.
+names(exos) # The names() function will return the column headers.
+```
+We see that we have 3584 observations spread around 25 variables. We can find detailed explaination on each variable in the documentation.
+
+```{r}
+# Basic Scatterplot Matrix
+pairs(~PlanetaryMassJpt + RadiusJpt + PeriodDays + SurfaceTempK + DiscoveryYear + DistFromSunParsec + HostStarMassSlrMass + HostStarRadiusSlrRad + HostStarTempK, data = exos)
+```
+Basic Scatterplot Matrix between the given variables.
+
+***
+
+Now let's begin with in-depth analysis of these variables.
+
+***
+
+### TypeFlag
+
+```{r}
+summary(exos$TypeFlag)
+```
+
+First of all we see that the variable TypeFlag has only 4 values; 0, 1, 2, 3. We can rename the observations accordingly.
+```{r}
+exos$TypeFlag <- ifelse(exos$TypeFlag==0,'no known stellar binary companion',exos$TypeFlag)
+exos$TypeFlag <- ifelse(exos$TypeFlag==1,'P-type binary (circumbinary)',exos$TypeFlag)
+exos$TypeFlag <- ifelse(exos$TypeFlag==2,'S-type binary',exos$TypeFlag)
+exos$TypeFlag <- ifelse(exos$TypeFlag==3,'orphan planet (no star)',exos$TypeFlag)
+```
+
+```{r}
+summary(exos$TypeFlag)
+```
+
+Now we can see number of observations in TypeFlag using table()
+```{r}
+levels(as.factor(exos$TypeFlag)) # looking at levels as factors.
+table(exos$TypeFlag)
+```
+
+***
+
+#### Converting variable Probability_of_life to factor
+```{r}
+exos$Probability_of_life <- as.factor(exos$Probability_of_life)
+table(exos$Probability_of_life)
+# So we have 328 planets in our dataset with some probability of life.
+# 0  means No Life, 1 means Life
+```
+
+***
+
+#### Create a normalization function
+```{r}
+# we can normalize the data 
+
+#normalize_risk_h_numerical <- sapply(risk_h_numerical, function(x) {
+#(x - min(x))/(max(x) - min(x))})
+
+normalize <- function(x) {
+return((x - min(x))/(max(x) - min(x)))} # create normalize function
+```
+
+
+#### Create a function to remove outliers
+```{r}
+remove_outliers <- function(x, rm_NA = TRUE)
+{
+  qnt <- quantile(x, probs=c(.25, .75), na.rm = rm_NA)
+  H <- 1.5 * IQR(x, na.rm = rm_NA)
+  y <- x
+  y[x < (qnt[1] - H)] <- NA
+  y[x > (qnt[2] + H)] <- NA
+  y
+}
+```
+We will call this function later, this will shorten the code.
+
+***
+
+### PlanetaryMassJpt
+```{r}
+summary(exos$PlanetaryMassJpt)
+summary(remove_outliers(exos$PlanetaryMassJpt))
+```
+
+```{r}
+massjptplot <- data.frame(remove_outliers(exos$PlanetaryMassJpt)) # Called the function to remove outliers.
+ggplot(data=exos, aes(massjptplot)) + geom_histogram(breaks=seq(0, 10, by=.01), 
+                 col="red", 
+                 fill="green", 
+                 alpha = .2) + 
+  labs(title="Histogram for Mass of Planet") +
+  labs(x="Mass of Planet(Jupiter = 1)", y="Count") + 
+  xlim(c(0,10)) + 
+  ylim(c(0,50)) +
+  geom_vline(xintercept = 1, linetype = "dashed") +
+  annotate("text", label="Jupiter", colour="black", x= 1.5, y = 49) +
+  geom_vline(xintercept = 0.0031457007, linetype = "dashed") +
+  annotate("text", label="Earth", colour="black", x= 0.1, y = 49)
+
+#boxplot(massjptplot, exos, horizontal = TRUE, axes = TRUE, range = 1,  col = c("red"), xlab = "Planetary Mass(Jupiter Mass)", 
+#        ylab = "count", ylim = c(0, 8), las = 2)
+
+ggplot(exos, aes(1, massjptplot)) +
+      geom_boxplot(col = "red") +
+  ggtitle("Boxplot of Planetary Mass(Jupiter Mass)") +
+  coord_flip()
+```
+The plot of the mass with the outliers was not very useful. But the main bulk of the planets is within the much smaller range, so removed the outliers. There are still many extremely massive planets . But still, the largest bin is around Earth’s mass.
+
+***
+
+### RadiusJpt
+
+```{r}
+summary(exos$RadiusJpt)
+```
+
+```{r}
+ggplot(data=exos, aes(exos$RadiusJpt)) + geom_histogram(aes(colour = Probability_of_life),breaks=seq(0, 5, by=.01), 
+                 #col="red", 
+                 #fill="green", 
+                 alpha = .2) + 
+  labs(title="Histogram for Radius of Planet") +
+  labs(x="Radius of Planet(Jupiter = 1)", y="Count") + 
+  xlim(c(0,5)) + 
+  ylim(c(0,50)) +
+  geom_vline(xintercept = 1, linetype = "dashed") +
+  annotate("text", label="Jupiter", colour="black", x= 1.5, y = 49) +
+  geom_vline(xintercept = 0.091130294, linetype = "dashed") +
+  annotate("text", label="Earth", colour="black", x= 0.1, y = 49)
+
+# boxplot(exos$RadiusJpt,horizontal=TRUE,axes=TRUE,range = 1, col = c("red"), xlab = "Boxplot for Radius of Planet")
+
+ggplot(exos, aes(1, RadiusJpt)) +
+      geom_boxplot(col = "red") +
+  ggtitle("Boxplot of Radius of Planet") +
+  coord_flip()
+```
+
+Shape is bimodal. The modes are aroud Earth’s size and Jupiter’s size. Hence maximum planets lies in these sizes(can't say for sure), as there might be some physical law that dictates that planets will tend to form around these two sizes.
+Also chance of Life = 1 bins are around Earth radius.
+
+***
+
+### PeriodDays
+```{r}
+summary(exos$PeriodDays)
+```
+We see that a planet takes 320000 days to complete one rotation around it's parent star. They can be termed as outliers. 
+
+Let's look at the plots.
+```{r}
+#periodplot <- data.frame(remove_outliers(exos$PeriodDays))
+ggplot(data=exos, aes(exos$PeriodDays)) + geom_histogram(aes(colour = Probability_of_life),breaks=seq(0, 5000, by=2), 
+                 #col="red", 
+                 #fill="green", 
+                 alpha = .2) + 
+  labs(title="Histogram for Period of Rotation of Planet") +
+  labs(x="Rotation Days of Planet", y="Count") + 
+  xlim(c(0,5000)) + 
+  ylim(c(0,10)) +
+  geom_vline(xintercept = 4332.82, linetype = "dashed") +
+  annotate("text", label="Jupiter", colour="black", x= 4334, y = 9) +
+  geom_vline(xintercept = 365.2422, linetype = "dashed") +
+  annotate("text", label="Earth", colour="black", x= 366, y = 9)
+
+boxplot(exos$PeriodDays, horizontal=TRUE, axes=TRUE,range = 537.2, col = c("red"))
+
+#ggplot(exos, aes(1, PeriodDays)) +
+ #     geom_boxplot(col = "red") +
+  #ggtitle("Boxplot of Period of Rotation of Planet)") +
+   #coord_flip()
+```
+
+Most of the planets have less roation cycle as they tend to be close to their star. Our telescopes are still in infancy to locate planets with more number of rotation.
+
+Also most planets with Life probability take less time rotating around their star, it's true, as most planets were found close to dwarf stars, also habitable zone is always nearby a parent star.
+
+***
+
+## SurfaceTempK
+```{r}
+summary(exos$SurfaceTempK)
+```
+
+```{r}
+ggplot(data=exos, aes(exos$SurfaceTempK)) + geom_histogram(aes(colour = Probability_of_life), breaks=seq(0, 8000, by=2.5), 
+                 #col="red", 
+                 #fill="green", 
+                 alpha = .2) + 
+  labs(title="Histogram for Surface Temperature Planet") +
+  labs(x="Surface Temperature", y="Count") + 
+  xlim(c(0,8000)) + 
+  ylim(c(0,10)) +
+  geom_vline(xintercept = 128.15, linetype = "dashed") +
+  annotate("text", label="Jupiter", colour="black", x= 50, y = 10) +
+  geom_vline(xintercept = 287, linetype = "dashed") +
+  annotate("text", label="Earth", colour="black", x= 600, y = 10)
+
+#hist(exos$SurfaceTempK, 1000)
+
+#boxplot(exos$SurfaceTempK, horizontal=TRUE, axes=TRUE,range = 1, col = c("red"))
+
+ggplot(exos, aes(1, SurfaceTempK)) +
+      geom_boxplot(col = "red") +
+  ggtitle("Boxplot for Surface Temperature Planet") +
+  coord_flip()
+```
+
+More planets observed have much hotter surface temperatures. We can say that they are much closer to their host star. They cannot be mostly habitable.
+
+Also most planets with  Life probability have close to Earth's surface temperature.
+
+***
+
+### DiscoveryMethod
+```{r}
+levels(as.factor(exos$DiscoveryMethod))
+```
+
+```{r}
+exos %>% group_by(DiscoveryMethod) %>% summarise(number_discovered=n())
+```
+
+More planets were observed using transit method, as our telescpoes(mainly Kepler) are better at observing the dip in brightness.
+
+```{r}
+exos$DiscoveryMethod[exos$DiscoveryMethod == '']  <- NA
+methodplot <- exos[!is.na(exos$DiscoveryMethod),]
+
+library(scales)
+
+ggplot(methodplot,aes(x = DiscoveryYear, fill = DiscoveryMethod)) +
+  geom_line(stat = "bin", binwidth = 2, aes(colour = DiscoveryMethod)) +
+  scale_x_continuous(breaks = pretty_breaks(n = 10)) +
+  coord_cartesian(xlim =c(1992, 2016)) +
+  xlab("Year") + ylab("Planets Discovered") +
+  theme(panel.background = element_rect(fill = "white",
+        color = "black", size = 0.1),
+        axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+Looks like by using RV and transit we found most amount of planets.
+
+***
+
+### DiscoveryYear
+```{r}
+summary(exos$DiscoveryYear)
+```
+
+```{r}
+ggplot(data=exos, aes(exos$DiscoveryYear)) + geom_histogram(aes(colour = Probability_of_life),breaks=seq(1781, 2017, by=2), 
+                 #col="red", 
+                 #fill="red", 
+                 alpha = .2) + 
+  labs(title="Histogram for Discovery Year of Planet") +
+  labs(x="Year", y="Count") + 
+  xlim(c(1781,2017)) + 
+  ylim(c(0,1500))
+
+# hist(exos$DiscoveryYear, 1000)
+# boxplot(exos$DiscoveryYear, horizontal=TRUE, axes=TRUE,range = 10, col = "red")
+```
+
+After the launch of Kepler Space Telescope and after 2013( when Kepler’s second reaction wheel failed and that the mission had to be replanned) we observed more planets.
+
+Also planets with Life probability were mostly discovered recently due to the advancements in telescopes.
+
+***
+
+#### Distribution of Jupiter Masses of these planets?
+```{r}
+massjptplot_1 <- remove_outliers(exos$PlanetaryMassJpt)
+ggplot(exos, aes(TypeFlag, massjptplot_1)) +
+        geom_boxplot(colour = "red") +
+  ggtitle("Boxplot of Mass of Planet vs TypeFlag") +
+  coord_flip()
+# varwidth = FALSE, size = 4, colour = "red")  + 
+#  scale_x_discrete(name = "Planetary Mass(Jupiter Mass)", breaks = seq(0, 6, 2),limits=c(0, 6)
+
+ggplot(exos, aes(TypeFlag, massjptplot_1)) +
+        geom_point(aes(colour = DiscoveryMethod)) +
+  ggtitle("Mass of Planet vs TypeFlag") +
+  coord_flip()
+```
+
+So we can see that our star is an odd compared to others, as most star have a stellar companion.
+
+Planets with higher mass are easily spotted by Transit method.
+
+Massive planets are less which are found orbitting P-type binary(both stars) which is true as more massive the planet, more chace it has to destablize the system, or collide with parent star.
+
+Most of the planets are observed by transit Method.
+
+***
+
+#### Discovery methods by Temperature
+
+```{r}
+ggplot(exos, aes(exos$DiscoveryMethod, exos$SurfaceTempK)) +
+      geom_boxplot(col = "red") +
+  ggtitle("Boxplot of Planet Temp vs Discovery Method") +
+  coord_flip()
+# size = 4, colour = "red")                               +
+# scale_x_discrete(name = "Surface Temperature", breaks = seq(0, 6000, 2),limits=c(0, 6000)        
+
+ggplot(exos, aes(exos$DiscoveryMethod, exos$SurfaceTempK)) +
+      geom_point(aes(colour = Probability_of_life)) +
+  ggtitle("Planet Temp vs Discovery Method") +
+  coord_flip()
+```
+
+We see that hotter planets were discovered by the imaging method. Microlensing was used for colder planets.
+
+***
+
+#### Relationship between SemiMajor Axis and Period
+```{r}
+axpdplot <- select(exos,c(SemiMajorAxisAU,PeriodDays))
+axpdplot <- na.omit(axpdplot)
+ggplot(axpdplot, aes(x=log(SemiMajorAxisAU), y=log(PeriodDays))) +
+  geom_point(col = "red") +
+  stat_smooth(method=lm, level=0.95, col = "black") # log to make plot more readable.
+```
+ The relationship is linear. We can predict the Period of a planet from the length of its semi-major axis.
+
+***
+
+#### Star
+
+***
+
+##### Relationship between star mass and star temperature
+```{r}
+mastemplot1 <- select(exos,c(HostStarMassSlrMass,HostStarTempK,Probability_of_life))
+mastemplot1 <- na.omit(mastemplot1)
+ggplot(mastemplot1,aes(x = log(HostStarMassSlrMass),y = log(HostStarTempK))) + 
+  geom_point(aes(colour = Probability_of_life)) +  # log transformation to get readable plot.
+  stat_smooth(method = lm, col="black") +
+  geom_vline(xintercept = 0.00000001, linetype = "dashed") +
+  annotate("text", label="Sun(Sol)", colour="black", x= 0, y = 10)
+```
+
+As the mass of the star increases, the temperature of the star also increases.
+
+Also most of the Life probability is around our Sun mass stars.
+
+***
+
+##### Relationship between Planet Mass and Host Star Mass
+```{r}
+#create a scatter plot
+ggplot(data = exos, aes(x = HostStarMassSlrMass, y = PlanetaryMassJpt)) +
+  geom_point(aes(colour = Probability_of_life)) +
+  scale_y_continuous("PlanetaryMassJpt", breaks = seq(0,270,10)) +
+  geom_vline(xintercept = 1, linetype = "dashed") +
+  annotate("text", label="Sun(Sol)", colour="black", x= 1, y = 260) +
+  geom_hline(yintercept = 0.003145701, linetype = "dashed") +
+  annotate("text", label="Earth", colour="black", x= 4, y = 4)
+```
+
+we see that most of the planets with some probabolity of life are somewhat massive than Earth
+
+This is because our telescope technology is not that strong
+
+Also most of them lie between 0.5 to 2 times our Sun mass
+
+At the cross-section of Sun and Earth most planets with Life probability lie.
+
+***
+
+### Location and Discovery
+#### Distance From Us
+
+```{r}
+summary(exos$DistFromSunParsec)
+```
+
+```{r}
+ggplot(data=exos, aes(exos$DistFromSunParsec)) + 
+  geom_histogram(aes(colour = Probability_of_life), breaks=seq(0, 9000, by = 8), 
+                 #col="red", 
+                 #fill="red", 
+                 alpha = .2) + 
+  labs(title="Histogram for Discovery Year of Planet") +
+  labs(x="Distance(Parsec)", y="Count") + 
+  xlim(c(0,9000)) + 
+  ylim(c(0,30))
+```
+
+So we discover more planets closer to us as our technology is still in infancy.
+
+And obviously our models and telescopes can predict Life closer to us.
+
+***
+***
+
+***
+***
+
+### Classification
+
+After the exploratory analysis, where we have observed the relation between attributes, our task is now to make a Model which can classify a Planet with Life(1) or No Life(0). For this we first have to fill all the missing data, as most of the models we are working with don't work well or at all with missing values. We could not remove the missing columns as they were unevenly distributed across whole dataset. We have used Package Amelia for filling out the missing values. As our model will need supervised learning machine algorithm, we are using seven of them here.
+
+KNN Model - When we need classification for a new data, the KNN algorithm goes through the entire dataset to find the k-nearest values to the new data values, or the k number of values most similar to the new record, and then outputs the mode (most frequent class) for a classification problem. The value of k is specified by user.
+
+Decision Tree Model - it is a type of supervised learning algorithm (having a pre-defined target variable). It works for both categorical and continuous input and output variables. Here we split the population or sample into two or more homogeneous set based on most significant splitter / differentiator in input variables.
+
+Random Forest Model - Random Forest (multiple learners) is an improvement over bagged decision trees (a single learner). It can handle large data set with higher dimensionality. It can handle thousands of input variables and identify most significant variables so it is considered as one of the dimensionality reduction methods.
+
+Naive Bayes - To calculate the probability that an event will occur, given that another event has already occurred, we use Bayes’ Theorem. To calculate the probability of an outcome given the value of some variable. Naive Bayes can handle missing data. ‘naive’ because it assumes that all the variables are independent of each other. This should not work very well with our model. But let's look at it too.
+
+Logistic Regression Model - Logistic regression predictions are discrete values(Life or no Life). ITthe output is in the form of probabilities of the default class. As it is a probability, the output lies in the range of 0-1. The output y-value is generated by log transforming the x-value. Then we force this probability into a binary classification.
+
+GBM Model - A boosting algorithm.It is a machine learning technique for regression and classification problems.It produces a prediction model in the form of an ensemble of weak prediction models, typically decision trees.
+
+Extreme Gradient Boosting, XGBoost Model - It does parallel computation on a single machine. This makes xgboost at least 10 times faster than existing gradient boosting implementations. It supports various objective functions, including regression, classification and ranking. It only works with numeric vectors.
+
+```{r}
+# using missing data imputation 'Amelia' package for filling the missing values in our dataset.
+#library('Rcpp')
+#library('Amelia')
+#AmeliaView()
+```
+
+```{r}
+# load the new dataset
+exosim <- read.csv(file.choose(), header = TRUE) # load exos_new-imp2.csv
+```
+
+```{r}
+summary(exosim)
+```
+So we have removed all the missing values.
+
+#### KNN
+
+```{r}
+exosim_numerical <- subset(exosim, select = c(PlanetaryMassJpt, RadiusJpt, PeriodDays, SemiMajorAxisAU, Eccentricity, PeriastronDeg, LongitudeDeg, AscendingNodeDeg, InclinationDeg, SurfaceTempK, AgeGyr, DiscoveryYear, DistFromSunParsec, HostStarMassSlrMass, HostStarRadiusSlrRad, HostStarMetallicity, HostStarTempK, HostStarAgeGyr))
+```
+
+```{r}
+#install.packages("corrr")
+library(corrr)
+exosim_numerical %>% correlate() %>% rplot()
+```
+
+We see very less correlation between the variables, so we don't have to remove any.
+
+```{r}
+#### Converting variable Probability_of_life to factor
+exosim$Probability_of_life <- as.factor(exosim$Probability_of_life)
+table(exosim$Probability_of_life)
+# So we have 328 planets in our dataset with some probability of life.
+```
+
+
+```{r}
+label_1 <- exosim$Probability_of_life # our variable for classification
+```
+
+
+```{r}
+# Categorical variables need to be represented with numbers 
+TypeFlag_dummies <- model.matrix( ~ TypeFlag - 1, data = exosim)
+
+DiscoveryMethod_dummies <- model.matrix( ~ DiscoveryMethod - 1, data = exosim)
+
+ListsPlanetIsOn_dummies <- model.matrix( ~ ListsPlanetIsOn - 1, data = exosim)
+```
+
+```{r}
+exosim_numcat <- data.frame(exosim_numerical, TypeFlag_dummies, DiscoveryMethod_dummies, ListsPlanetIsOn_dummies)
+```
+
+```{r}
+str(exosim_numcat)
+```
+
+```{r}
+# normalize 
+norm_exosim_numcat <- as.data.frame(sapply(exosim_numcat, normalize))
+```
+
+```{r}
+set.seed(1234)
+oneortwo <- sample(1:2 , length(exosim$PlanetIdentifier), replace = TRUE, prob=c(0.8, 0.2)) # generating random values and storing them
+```
+
+```{r}
+# create train data frame
+train_1 <- norm_exosim_numcat[oneortwo == 1, ]
+
+# create test data frame
+test_1 <- norm_exosim_numcat[oneortwo == 2, ]
+
+# create data frame to apply train and test upon
+train_1_label <- label_1[oneortwo == 1]
+test_1_label <- label_1[oneortwo == 2]
+```
+
+```{r}
+require(class)  # to use knn algorithm  
+
+# splitting the data
+set.seed(1234)
+life_predicted_1 <- knn(train = train_1, test = test_1, cl = train_1_label, k = 20)
+```
+
+
+```{r}
+results_1 <- data.frame(life_predicted_1, test_1_label)
+#install.packages('caret')
+require(caret)
+```
+
+```{r}
+#install.packages('e1071')
+require(e1071)
+```
+
+```{r}
+accuracy_1 <- paste("Accuracy of KNN Model is:", sum(life_predicted_1 == test_1_label)/length(life_predicted_1))
+knn <- sum(life_predicted_1 == test_1_label)/length(life_predicted_1)
+
+confusionMatrix(table(results_1))
+```
+
+We get an accuracy of 91.48% which is really good, but has a room for improvemnet.
+
+***
+
+#### Decision Trees
+
+```{r}
+#install.packages('rattle')
+#install.packages('rpart.plot')
+#install.packages('RColorBrewer')
+
+library(rpart) #rpart for “Recursive Partitioning and Regression Trees” and uses the CART decision tree algorithm.
+
+# For better insights from rpart plot we import these libraries.
+library(rattle)
+library(rpart.plot)
+library(RColorBrewer)
+```
+
+
+```{r}
+# create train data frame
+train_2 <- exosim[oneortwo == 1, -26]
+
+# create test data frame
+test_2 <- exosim[oneortwo == 2, -26]
+
+# create data frame to apply train and test upon
+train_2_label <- label_1[oneortwo == 1]
+test_2_label <- label_1[oneortwo == 2]
+```
+
+
+```{r}
+test_2 <- data.frame(test_2, test_2_label)
+head(test_2)
+
+train_2 <- data.frame(train_2, train_2_label)
+head(train_2)
+```
+
+
+```{r}
+life_predicted_2 <- rpart(train_2_label ~ PlanetaryMassJpt + RadiusJpt + PeriodDays + SemiMajorAxisAU + Eccentricity + PeriastronDeg + LongitudeDeg + AscendingNodeDeg + InclinationDeg + SurfaceTempK + AgeGyr + DiscoveryYear + DistFromSunParsec + HostStarMassSlrMass + HostStarRadiusSlrRad + HostStarMetallicity + HostStarTempK + HostStarAgeGyr + TypeFlag + DiscoveryMethod + ListsPlanetIsOn, data = train_2, method = "class")
+
+# to predict a continuous variable, use method = "anova". But here, we want a one or a zero, so method = "class"
+```
+
+
+```{r}
+# Examine life_predicted_2
+plot(life_predicted_2)
+text(life_predicted_2)
+```
+
+
+```{r}
+fancyRpartPlot(life_predicted_2) # This gives better plot
+```
+
+We can see here that the model has considered 'Peiod of Days < 132' for split. Decision tree splits the nodes on all available variables and then selects the split which results in most homogeneous sub-nodes. Our Root Node has a ratio of .91 to .09 on 0(No Life). The consecutive Decision Nodes are HostStarTempK and PeriodDays>=1254. We have 23 Terminal Nodes.
+
+```{r}
+prediction_2 <- predict(life_predicted_2, test_2, type = "class")
+```
+
+```{r}
+results_2 <- data.frame(prediction_2, test_2$test_2_label)
+ 
+accuracy_2  <- paste("Accuracy of Decision Tree Model is:", sum(prediction_2 == test_2$test_2_label)/length(prediction_2))
+decisiontree <- sum(prediction_2 == test_2$test_2_label)/length(prediction_2)
+
+confusionMatrix(table(results_2))
+```
+
+We get accuracy of 95.11% which is far better than KNN model. We can prune our model to avoid overfitting if any, or we can jump to Random Forest which betters the accuracy, as it constructs several decision trees on several variables and than does classification. 
+
+***
+
+#### Random Forest
+
+```{r}
+#install.packages('randomForest')
+library(randomForest)
+```
+
+
+```{r}
+set.seed(1234)
+```
+
+```{r}
+life_predicted_3 <- randomForest(train_2_label ~ PlanetaryMassJpt + RadiusJpt + PeriodDays + SemiMajorAxisAU + Eccentricity + PeriastronDeg + LongitudeDeg + AscendingNodeDeg + InclinationDeg + SurfaceTempK + AgeGyr + DiscoveryYear + DistFromSunParsec + HostStarMassSlrMass + HostStarRadiusSlrRad + HostStarMetallicity + HostStarTempK + HostStarAgeGyr + TypeFlag + DiscoveryMethod + ListsPlanetIsOn , data = train_2, importance = TRUE, ntree = 50) 
+```
+
+We want enough trees to stabilize the error but not so many that they over correlate the ensemble, which will lead to overfit so we keep ntree = 50.
+
+```{r}
+varImpPlot(life_predicted_3)
+```
+
+Higher the value of Gini higher the homogeneity. So split occurs accordingly. 
+
+```{r}
+plot(life_predicted_3, log="y")
+```
+
+Across 50 trees the error rate decreased, we might increase the number of trees for more decreased error, but avoid it because of overfitting.
+
+```{r}
+library("party")
+x <- ctree(train_2_label ~ PlanetaryMassJpt + RadiusJpt + PeriodDays + SemiMajorAxisAU + Eccentricity + PeriastronDeg + LongitudeDeg + AscendingNodeDeg + InclinationDeg + SurfaceTempK + AgeGyr + DiscoveryYear + DistFromSunParsec + HostStarMassSlrMass + HostStarRadiusSlrRad + HostStarMetallicity + HostStarTempK + HostStarAgeGyr + TypeFlag + DiscoveryMethod + ListsPlanetIsOn , data = train_2)
+plot(x, type="simple")
+```
+
+Here we see the splitting at Discovery Method. This plot has few good aspects. Like on 20th Terminal Node when the value of HostStarRadius is <=1 , the y has value of 88.4% for Life = 1. Same results can be seen on  25, 37 termnal node, Also for transit we have 99% and transit 92% Life chance = 1.
+
+```{r}
+prediction_3 <- predict(life_predicted_3, test_2, type='class')
+results_3 <- data.frame(prediction_3, test_2$test_2_label)
+
+accuracy_3  <- paste("Accuracy of Random Forest Model is:", sum(prediction_3 == test_2$test_2_label)/length(prediction_3))
+randomforestRF <- sum(prediction_3 == test_2$test_2_label)/length(prediction_3)
+
+confusionMatrix(table(results_3))
+```
+
+We see a slight improvement at 95.53%.
+
+***
+
+#### NaiveBayes
+
+```{r}
+#library(e1071)
+library(plyr)
+```
+
+```{r}
+life_predicted_4 <- naiveBayes(train_2_label ~ PlanetaryMassJpt + RadiusJpt + PeriodDays + SemiMajorAxisAU + Eccentricity + PeriastronDeg + LongitudeDeg + AscendingNodeDeg + InclinationDeg + SurfaceTempK + AgeGyr + DiscoveryYear + DistFromSunParsec + HostStarMassSlrMass + HostStarRadiusSlrRad + HostStarMetallicity + HostStarTempK + HostStarAgeGyr + TypeFlag + DiscoveryMethod + ListsPlanetIsOn , data = train_2)
+```
+
+
+```{r}
+summary(life_predicted_4)
+```
+
+```{r}
+prediction_4 <- predict(life_predicted_4, test_2, type='class')
+results_4 <- data.frame(prediction_4, test_2$test_2_label)
+
+accuracy_4 <- paste("Accuracy of Naive Bayes Model is:", sum(prediction_4 == test_2$test_2_label)/length(prediction_4))
+naivebayesNB <- sum(prediction_4 == test_2$test_2_label)/length(prediction_4)
+
+confusionMatrix(table(results_4))
+```
+
+We get accuracy of 82.26%. Well this was to happen as Naive Bayes considers variables to be unrelated to each other. 
+
+***
+
+#### Logistic Regression
+
+```{r}
+life_predicted_5 <- glm(train_2_label ~ PlanetaryMassJpt + RadiusJpt + PeriodDays + SemiMajorAxisAU + Eccentricity +  SurfaceTempK + AgeGyr + DiscoveryYear + DistFromSunParsec + HostStarMassSlrMass + HostStarRadiusSlrRad + HostStarMetallicity + HostStarTempK + HostStarAgeGyr  , family = binomial(link='logit'), data = train_2, control = list(maxit = 50))
+```
+
+```{r}
+prediction_5 <- predict(life_predicted_5, test_2, type = 'response')  # type='response', R will output probabilities in the form of P(y=1|X).
+summary(prediction_5)
+# the observation is not (1,0)
+
+prediction_5 <- as.numeric(prediction_5 > 0.5, 1, 0) 
+# this step to convert the observation to be classified as 1 and 0 otherwise . We take decision boundary to be 0.5.
+
+mean(as.numeric(prediction_5 > 0.5) != test_2$test_2_label) # test error
+# test error = 0.08  is pretty low
+
+results_5 <- data.frame(prediction_5, test_2$test_2_label)
+
+accuracy_5  <- paste("Accuracy of Logistic Regression Model is:", sum(prediction_5 == test_2$test_2_label)/length(prediction_5))
+logisticregression <- sum(prediction_5 == test_2$test_2_label)/length(prediction_5)
+
+confusionMatrix(table(results_5))
+```
+
+We get an accuracy of 91.2% which is less compred to other models, but it outperformed NaiveBayes. Usually logistic regression performs good for binary classification but with our variables it gives less accuracy compared to other models.
+
+***
+
+#### Generalized Boosted Regression Models(GBM)
+
+```{r}
+library(caret)
+```
+
+```{r}
+fitControl <- trainControl(method = "cv", number = 10) #5folds) # cross validation (cv) is used to determine the optimum number of trees. 
+```
+
+```{r}
+tune_Grid <-  expand.grid(interaction.depth = 2, # interaction.depth = 2, shrinkage = 0.1 came from a bit of experimenting.
+                            n.trees = 500,      # n.trees has to be high enough that it is clear the optimum number of trees is lower than the number estimated.
+                            shrinkage = 0.1,
+                            n.minobsinnode = 20)
+```
+
+```{r}
+set.seed(1234)
+
+#install.packages('gbm')
+
+life_predicted_6 <- train(train_2_label ~ PlanetaryMassJpt + RadiusJpt + PeriodDays + SemiMajorAxisAU + Eccentricity + PeriastronDeg + LongitudeDeg + AscendingNodeDeg + InclinationDeg + SurfaceTempK + AgeGyr + DiscoveryYear + DistFromSunParsec + HostStarMassSlrMass + HostStarRadiusSlrRad + HostStarMetallicity + HostStarTempK + HostStarAgeGyr + TypeFlag + DiscoveryMethod , data = train_2,
+                 method = "gbm",
+                 trControl = fitControl,
+                 verbose = FALSE,
+                 tuneGrid = tune_Grid)
+```
+
+```{r}
+prediction_6 <- predict(life_predicted_6, test_2, type = "raw") 
+```
+
+
+```{r}
+results_6 <- data.frame(prediction_6, test_2$test_2_label)
+
+accuracy_6  <- paste("Accuracy of GBM Model is:", sum(prediction_6 == test_2$test_2_label)/length(prediction_6))
+gbm <- sum(prediction_6 == test_2$test_2_label)/length(prediction_6)
+
+confusionMatrix(table(results_6))
+```
+
+We get an accuracy of 97.07% which is best yet. The more ntrees the more accuracy we observe here, but after that we will see overfitting. 
+
+***
+
+#### XGBoost
+
+XgBoost accepts the missing values in it's prediction but we'll take our exosim dataframe.
+```{r}
+# install.packages('xgboost')
+library(xgboost)
+library(readr)
+library(stringr)
+#library(caret)
+#install.packages('car')
+#library(car)
+```
+
+```{r}
+# create train data frame
+train_3 <- exosim[oneortwo == 1, -26]
+
+# create test data frame
+test_3 <- exosim[oneortwo == 2, -26]
+
+# create data frame to apply train and test upon
+train_3_label <- label_1[oneortwo == 1]
+test_3_label <- label_1[oneortwo == 2]
+```
+
+```{r}
+# convert every variable to numeric, even the integer variables
+train_3 <- as.data.frame(lapply(train_3, as.numeric))
+test_3 <- as.data.frame(lapply(test_3, as.numeric))
+```
+
+We must convert our data type to numeric, otherwise algorithm doesn’t work.
+
+```{r}
+# convert data to xgboost format
+data.train_3 <- xgb.DMatrix(data = data.matrix(train_3[, 1:ncol(train_3)]), label = train_3_label)
+data.test_3 <- xgb.DMatrix(data = data.matrix(test_3[, 1:ncol(test_3)]), label = test_3_label)
+
+```
+
+
+```{r}
+watchlist <- list(train  = data.train_3, test = data.test_3)
+```
+
+```{r}
+parameters <- list(
+    # General Parameters
+    booster            = "gbtree",          # default = "gbtree"           # gbtree (tree based) or gblinear (linear function)
+    silent             = 0,                 # default = 0                  # silent = 0 will stop results from displaying
+    # Booster Parameters
+    eta                = 0.3,               # default = 0.3, range: [0,1]  # Low eta value means model is more robust to overfitting.
+    gamma              = 0,                 # default = 0,   range: [0,∞]  # Larger the gamma more conservative the algorithm is.
+    max_depth          = 2,                 # default = 6,   range: [1,∞]  # less depth so to avoid overfitting
+    min_child_weight   = 1,                 # default = 1,   range: [0,∞]  # It might help in logistic regression when class is extremely imbalanced. 
+    subsample          = 1,                 # default = 1,   range: (0,1]  # 0.5 means that XGBoost randomly collected half of the data instances to grow trees, this will prevent overfitting.
+    colsample_bytree   = 1,                 # default = 1,   range: (0,1]
+    colsample_bylevel  = 1,                 # default = 1,   range: (0,1]
+    lambda             = 1,                 # default = 1
+    alpha              = 0,                 # default = 0
+    # Task Parameters
+    objective          = "multi:softmax",   # default = "reg:linear"
+    eval_metric        = "mlogloss",
+    num_class          = 20,
+    seed               = 1234               # reproducability seed
+    )
+
+
+```
+
+
+```{r}
+life_predicted_7 <- xgb.train(parameters, data.train_3, nrounds = 200, watchlist) # nrounds is like ntrees 
+```
+
+```{r}
+prediction_7 <- predict(life_predicted_7, data.test_3)
+summary(prediction_7)
+# values are (1,2) but we need (0,1)
+
+prediction_7 <- as.numeric(prediction_7 > 1.5) 
+summary(prediction_7)
+# this step to convert values  (1,2) to (0,1) in prediction_7
+
+results_7 <- data.frame(prediction_7, test_3_label)
+
+accuracy_7  <- paste("Accuracy of XGBoost Model is:", sum(prediction_7 == test_3_label)/length(prediction_7))
+xgboostXGB <- sum(prediction_7 == test_3_label)/length(prediction_7)
+
+confusionMatrix(table(results_7))
+```
+
+We get an accuracy of 97.49% which is best. nrounds = 200 really works, we could further improve accuracy with higher values of nrounds.
+
+***
+
+Accuracy of our Models:
+
+```{r}
+accuracy_1
+accuracy_2
+accuracy_3
+accuracy_4
+accuracy_5
+accuracy_6
+accuracy_7
+```
+
+
+```{r}
+models <- c( knn, decisiontree, randomforestRF, naivebayesNB, logisticregression, gbm, xgboostXGB)
+
+barplot(models,
+  main = "Accuracy Plot",
+  ylim = c(0,1.2),
+  #horiz = TRUE,
+  las=2,
+  names.arg = c("knn", "DTree", "RF", "NB", "LogisticR", "GBM", "XGBoost"),
+  col =  gray.colors(length(unique(models)))[as.factor(models)])
+
+text(0.8, 1.1, "91.49")
+text(1.9, 1.1, "95.12")
+text(3.0, 1.1, "95.53")
+text(4.3, 1.1, "82.26")
+text(5.5, 1.1, "91.20")
+text(6.7, 1.1, "97.06")
+text(7.9, 1.1, "97.49")
+
+```
+
+

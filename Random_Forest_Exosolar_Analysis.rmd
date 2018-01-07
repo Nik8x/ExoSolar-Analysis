@@ -1,0 +1,111 @@
+---
+title: "Random_Forest_Exosolar_Analysis"
+author: "Niket"
+output: rmarkdown::github_document
+---
+
+Random Forest Model - Random Forest (multiple learners) is an improvement over bagged decision trees (a single learner). It can handle large data set with higher dimensionality. It can handle thousands of input variables and identify most significant variables so it is considered as one of the dimensionality reduction methods.
+
+```{r}
+#install.packages('caret')
+require(caret)
+
+#install.packages('e1071')
+require(e1071)
+```
+
+```{r}
+# load the new dataset
+exosim <- read.csv(file.choose(), header = TRUE) # load exos_new-imp2.csv
+```
+
+```{r}
+#### Converting variable Probability_of_life to factor
+exosim$Probability_of_life <- as.factor(exosim$Probability_of_life)
+table(exosim$Probability_of_life)
+# So we have 328 planets in our dataset with some probability of life.
+```
+
+```{r}
+label_1 <- exosim$Probability_of_life # our variable for classification
+```
+
+```{r}
+set.seed(1234)
+oneortwo <- sample(1:2 , length(exosim$PlanetIdentifier), replace = TRUE, prob=c(0.8, 0.2)) # generating random values and storing them
+```
+
+```{r}
+# create train data frame
+train_2 <- exosim[oneortwo == 1, -26]
+
+# create test data frame
+test_2 <- exosim[oneortwo == 2, -26]
+
+# create data frame to apply train and test upon
+train_2_label <- label_1[oneortwo == 1]
+test_2_label <- label_1[oneortwo == 2]
+```
+
+
+```{r}
+test_2 <- data.frame(test_2, test_2_label)
+head(test_2)
+
+train_2 <- data.frame(train_2, train_2_label)
+head(train_2)
+```
+
+#### Random Forest
+
+```{r}
+#install.packages('randomForest')
+library(randomForest)
+```
+
+
+```{r}
+set.seed(1234)
+```
+
+```{r}
+life_predicted_3 <- randomForest(train_2_label ~ PlanetaryMassJpt + RadiusJpt + PeriodDays + SemiMajorAxisAU + Eccentricity + PeriastronDeg + LongitudeDeg + AscendingNodeDeg + InclinationDeg + SurfaceTempK + AgeGyr + DiscoveryYear + DistFromSunParsec + HostStarMassSlrMass + HostStarRadiusSlrRad + HostStarMetallicity + HostStarTempK + HostStarAgeGyr + TypeFlag + DiscoveryMethod + ListsPlanetIsOn , data = train_2, importance = TRUE, ntree = 50) 
+```
+
+We want enough trees to stabilize the error but not so many that they over correlate the ensemble, which will lead to overfit so we keep ntree = 50.
+
+```{r}
+varImpPlot(life_predicted_3)
+```
+
+Higher the value of Gini higher the homogeneity. So split occurs accordingly. 
+
+```{r}
+plot(life_predicted_3, log="y")
+```
+
+Across 50 trees the error rate decreased, we might increase the number of trees for more decreased error, but avoid it because of overfitting.
+
+```{r}
+library("party")
+x <- ctree(train_2_label ~ PlanetaryMassJpt + RadiusJpt + PeriodDays + SemiMajorAxisAU + Eccentricity + PeriastronDeg + LongitudeDeg + AscendingNodeDeg + InclinationDeg + SurfaceTempK + AgeGyr + DiscoveryYear + DistFromSunParsec + HostStarMassSlrMass + HostStarRadiusSlrRad + HostStarMetallicity + HostStarTempK + HostStarAgeGyr + TypeFlag + DiscoveryMethod + ListsPlanetIsOn , data = train_2)
+plot(x, type="simple")
+```
+
+Here we see the splitting at Discovery Method. This plot has few good aspects. Like on 20th Terminal Node when the value of HostStarRadius is <=1 , the y has value of 88.4% for Life = 1. Same results can be seen on  25, 37 termnal node, Also for transit we have 99% and transit 92% Life chance = 1.
+
+```{r}
+prediction_3 <- predict(life_predicted_3, test_2, type='class')
+results_3 <- data.frame(prediction_3, test_2$test_2_label)
+
+accuracy_3  <- paste("Accuracy of Random Forest Model is:", sum(prediction_3 == test_2$test_2_label)/length(prediction_3))
+randomforestRF <- sum(prediction_3 == test_2$test_2_label)/length(prediction_3)
+```
+
+```{r}
+confusionMatrix(table(results_3))
+```
+
+We see a slight improvement at 95.53%.
+
+***

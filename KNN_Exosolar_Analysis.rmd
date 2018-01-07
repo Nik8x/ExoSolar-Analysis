@@ -1,0 +1,124 @@
+---
+title: "KNN_Exosolar_Analysis"
+author: "Niket"
+output: rmarkdown::github_document
+---
+
+KNN Model - When we need classification for a new data, the KNN algorithm goes through the entire dataset to find the k-nearest values to the new data values, or the k number of values most similar to the new record, and then outputs the mode (most frequent class) for a classification problem. The value of k is specified by user.
+
+```{r}
+# load the new dataset
+exosim <- read.csv(file.choose(), header = TRUE) # load exos_new-imp2.csv
+```
+
+```{r}
+#### Converting variable Probability_of_life to factor
+exosim$Probability_of_life <- as.factor(exosim$Probability_of_life)
+table(exosim$Probability_of_life)
+# So we have 328 planets in our dataset with some probability of life.
+```
+
+#### Create a normalization function
+```{r}
+# we can normalize the data 
+
+normalize <- function(x) {
+return((x - min(x))/(max(x) - min(x)))} # create normalize function
+```
+
+#### KNN
+
+```{r}
+exosim_numerical <- subset(exosim, select = c(PlanetaryMassJpt, RadiusJpt, PeriodDays, SemiMajorAxisAU, Eccentricity, PeriastronDeg, LongitudeDeg, AscendingNodeDeg, InclinationDeg, SurfaceTempK, AgeGyr, DiscoveryYear, DistFromSunParsec, HostStarMassSlrMass, HostStarRadiusSlrRad, HostStarMetallicity, HostStarTempK, HostStarAgeGyr))
+```
+
+```{r}
+#install.packages("corrr")
+library(corrr)
+exosim_numerical %>% correlate() %>% rplot()
+```
+
+We see very less correlation between the variables, so we don't have to remove any.
+
+```{r}
+#### Converting variable Probability_of_life to factor
+exosim$Probability_of_life <- as.factor(exosim$Probability_of_life)
+table(exosim$Probability_of_life)
+# So we have 328 planets in our dataset with some probability of life.
+```
+
+
+```{r}
+label_1 <- exosim$Probability_of_life # our variable for classification
+```
+
+
+```{r}
+# Categorical variables need to be represented with numbers 
+TypeFlag_dummies <- model.matrix( ~ TypeFlag - 1, data = exosim)
+
+DiscoveryMethod_dummies <- model.matrix( ~ DiscoveryMethod - 1, data = exosim)
+
+ListsPlanetIsOn_dummies <- model.matrix( ~ ListsPlanetIsOn - 1, data = exosim)
+```
+
+```{r}
+exosim_numcat <- data.frame(exosim_numerical, TypeFlag_dummies, DiscoveryMethod_dummies, ListsPlanetIsOn_dummies)
+```
+
+```{r}
+str(exosim_numcat)
+```
+
+```{r}
+# normalize 
+norm_exosim_numcat <- as.data.frame(sapply(exosim_numcat, normalize))
+```
+
+```{r}
+set.seed(1234)
+oneortwo <- sample(1:2 , length(exosim$PlanetIdentifier), replace = TRUE, prob=c(0.8, 0.2)) # generating random values and storing them
+```
+
+```{r}
+# create train data frame
+train_1 <- norm_exosim_numcat[oneortwo == 1, ]
+
+# create test data frame
+test_1 <- norm_exosim_numcat[oneortwo == 2, ]
+
+# create data frame to apply train and test upon
+train_1_label <- label_1[oneortwo == 1]
+test_1_label <- label_1[oneortwo == 2]
+```
+
+```{r}
+require(class)  # to use knn algorithm  
+
+# splitting the data
+set.seed(1234)
+life_predicted_1 <- knn(train = train_1, test = test_1, cl = train_1_label, k = 20)
+```
+
+
+```{r}
+results_1 <- data.frame(life_predicted_1, test_1_label)
+#install.packages('caret')
+require(caret)
+```
+
+```{r}
+#install.packages('e1071')
+require(e1071)
+```
+
+```{r}
+accuracy_1 <- paste("Accuracy of KNN Model is:", sum(life_predicted_1 == test_1_label)/length(life_predicted_1))
+knn <- sum(life_predicted_1 == test_1_label)/length(life_predicted_1)
+
+confusionMatrix(table(results_1))
+```
+
+We get an accuracy of 91.48% which is really good, but has a room for improvemnet.
+
+***

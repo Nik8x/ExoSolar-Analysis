@@ -1,0 +1,112 @@
+---
+title: "Decision_Trees_Exosolar_Analysis"
+author: "Niket"
+output: rmarkdown::github_document
+---
+
+Decision Tree Model - it is a type of supervised learning algorithm (having a pre-defined target variable). It works for both categorical and continuous input and output variables. Here we split the population or sample into two or more homogeneous set based on most significant splitter / differentiator in input variables.
+
+```{r}
+#install.packages('caret')
+require(caret)
+
+#install.packages('e1071')
+require(e1071)
+```
+
+```{r}
+# load the new dataset
+exosim <- read.csv(file.choose(), header = TRUE) # load exos_new-imp2.csv
+```
+
+```{r}
+#### Converting variable Probability_of_life to factor
+exosim$Probability_of_life <- as.factor(exosim$Probability_of_life)
+table(exosim$Probability_of_life)
+# So we have 328 planets in our dataset with some probability of life.
+```
+
+
+```{r}
+label_1 <- exosim$Probability_of_life # our variable for classification
+```
+
+```{r}
+set.seed(1234)
+oneortwo <- sample(1:2 , length(exosim$PlanetIdentifier), replace = TRUE, prob=c(0.8, 0.2)) # generating random values and storing them
+```
+
+#### Decision Trees
+
+```{r}
+#install.packages('rattle')
+#install.packages('rpart.plot')
+#install.packages('RColorBrewer')
+
+library(rpart) #rpart for “Recursive Partitioning and Regression Trees” and uses the CART decision tree algorithm.
+
+# For better insights from rpart plot we import these libraries.
+library(rattle)
+library(rpart.plot)
+library(RColorBrewer)
+```
+
+
+```{r}
+# create train data frame
+train_2 <- exosim[oneortwo == 1, -26]
+
+# create test data frame
+test_2 <- exosim[oneortwo == 2, -26]
+
+# create data frame to apply train and test upon
+train_2_label <- label_1[oneortwo == 1]
+test_2_label <- label_1[oneortwo == 2]
+```
+
+
+```{r}
+test_2 <- data.frame(test_2, test_2_label)
+head(test_2)
+
+train_2 <- data.frame(train_2, train_2_label)
+head(train_2)
+```
+
+
+```{r}
+life_predicted_2 <- rpart(train_2_label ~ PlanetaryMassJpt + RadiusJpt + PeriodDays + SemiMajorAxisAU + Eccentricity + PeriastronDeg + LongitudeDeg + AscendingNodeDeg + InclinationDeg + SurfaceTempK + AgeGyr + DiscoveryYear + DistFromSunParsec + HostStarMassSlrMass + HostStarRadiusSlrRad + HostStarMetallicity + HostStarTempK + HostStarAgeGyr + TypeFlag + DiscoveryMethod + ListsPlanetIsOn, data = train_2, method = "class")
+
+# to predict a continuous variable, use method = "anova". But here, we want a one or a zero, so method = "class"
+```
+
+
+```{r}
+# Examine life_predicted_2
+plot(life_predicted_2)
+text(life_predicted_2)
+```
+
+
+```{r}
+fancyRpartPlot(life_predicted_2) # This gives better plot
+```
+
+We can see here that the model has considered 'Peiod of Days < 132' for split. Decision tree splits the nodes on all available variables and then selects the split which results in most homogeneous sub-nodes. Our Root Node has a ratio of .91 to .09 on 0(No Life). The consecutive Decision Nodes are HostStarTempK and PeriodDays>=1254. We have 23 Terminal Nodes.
+
+```{r}
+prediction_2 <- predict(life_predicted_2, test_2, type = "class")
+```
+
+```{r}
+results_2 <- data.frame(prediction_2, test_2$test_2_label)
+ 
+accuracy_2  <- paste("Accuracy of Decision Tree Model is:", sum(prediction_2 == test_2$test_2_label)/length(prediction_2))
+decisiontree <- sum(prediction_2 == test_2$test_2_label)/length(prediction_2)
+
+confusionMatrix(table(results_2))
+```
+
+We get accuracy of 95.11% which is far better than KNN model. We can prune our model to avoid overfitting if any, or we can jump to Random Forest which betters the accuracy, as it constructs several decision trees on several variables and than does classification. 
+
+***
